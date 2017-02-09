@@ -9,7 +9,8 @@
   "scripts": {
     "test": "npm -s run test:lint & npm -s run test:unit",
     "test:lint": "eslint index.js",
-    "test:unit": "nyc mocha"
+    "test:unit": "nyc mocha",
+    "release": "npm version patch && npm publish"
   },
   "keywords": [
     "throttle",
