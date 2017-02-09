@@ -1,0 +1,9 @@
+machine:
+  environment:
+    MOCHA_FILE: $CIRCLE_TEST_REPORTS/mocha/tests.[hash].xml
+  node:
+    version: 6.9.4
+
+general:
+  artifacts:
+    - "coverage"
