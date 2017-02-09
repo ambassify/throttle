@@ -28,13 +28,6 @@
   "directories": {
     "test": "test"
   },
-  "dependencies": {
-    "eslint": "^3.15.0",
-    "mocha-circleci-reporter": "^0.0.2",
-    "nyc": "^10.1.2",
-    "sinon": "^1.17.7",
-    "sleep-promise": "^2.0.0"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ambassify/throttle.git"
