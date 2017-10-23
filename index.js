@@ -9,7 +9,7 @@ module.exports = function(func, timeout, resolver) {
 
     var cache = {};
 
-    return function() {
+    function execute() {
         var args = [], args_i = arguments.length;
         while (args_i-- > 0) args[args_i] = arguments[args_i];
 
@@ -28,5 +28,20 @@ module.exports = function(func, timeout, resolver) {
         }
 
         return cache[key].value;
+    }
+
+    execute.clear = function clear() {
+        if (arguments.length < 1) {
+            cache = {};
+            return;
+        }
+
+        var args = [], args_i = arguments.length;
+        while (args_i-- > 0) args[args_i] = arguments[args_i];
+
+        var key = resolver.apply(null, args);
+        delete cache[key];
     };
+
+    return execute;
 };

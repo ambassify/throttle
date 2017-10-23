@@ -76,6 +76,36 @@ describe('#throttle', function() {
         });
     });
 
+    it('Should clear cache on `.clear()`', function() {
+        const timeout = 20;
+        const target = sandbox.spy();
+        const throttled = throttle(target, timeout);
+
+        throttled(1);
+        throttled(2);
+        throttled.clear();
+        throttled(2);
+
+        assert.equal(target.callCount, 3);
+    });
+
+    it('Should clear specific cache entries on `.clear()`', function() {
+        const timeout = 20;
+        const target = sandbox.spy();
+        const throttled = throttle(target, timeout);
+
+        throttled(1);
+        throttled(2);
+        throttled.clear(1);
+        throttled(2);
+
+        assert.equal(target.callCount, 2);
+
+        throttled.clear(2);
+        throttled(2);
+        assert.equal(target.callCount, 3);
+    });
+
     it('Should call resolver', function() {
         const timeout = 20;
         const target = sandbox.spy();
