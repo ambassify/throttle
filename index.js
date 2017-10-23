@@ -1,25 +1,30 @@
+function noop(v) { return v; }
+
 module.exports = function(func, timeout, resolver) {
     // By default uses first argument as cache key.
-    resolver = resolver || (v => v);
+    resolver = resolver || noop;
 
     // Timeout in milliseconds
     timeout = parseInt(timeout, 10);
 
-    const cache = {};
+    var cache = {};
 
-    return (...args) => {
+    return function() {
+        var args = [], args_i = arguments.length;
+        while (args_i-- > 0) args[args_i] = arguments[args_i];
+
         // If there is no timeout set we simply call `func`
         if (!timeout || timeout < 1)
-            return func(...args);
+            return func.apply(null, args);
 
-        const key = resolver(...args);
+        var key = resolver.apply(null, args);
 
         // Populate the cache when there is nothing there yet.
         if (typeof cache[key] === 'undefined') {
-            cache[key] = { value: func(...args) };
+            cache[key] = { value: func.apply(null, args) };
 
             // Clear cache after timeout
-            setTimeout(() => { delete cache[key]; }, timeout);
+            setTimeout(function() { delete cache[key]; }, timeout);
         }
 
         return cache[key].value;
