@@ -6,12 +6,40 @@ function isPromise(v) {
     return v && isFunction(v.then) && isFunction(v.catch);
 }
 
+function rejectFailedPromise(item) {
+    var value = item.value;
+
+    // Don't allow failed promises to be cached
+    if (!isPromise(value))
+        return;
+
+    value.catch(item.clear);
+}
+
+function getOnCached(options) {
+    var onCached = options.onCached || noop;
+
+    if (!options.rejectFailedPromise)
+        return onCached;
+
+    // Cache promises that result in rejection
+    if (!isFunction(onCached))
+        return rejectFailedPromise;
+
+    return function(item) {
+        rejectFailedPromise(item);
+        onCached(item);
+    };
+}
+
 module.exports = function(func, timeout, options) {
+    options = options || {};
+
     // Timeout in milliseconds
     timeout = parseInt(timeout, 10);
 
     // By default uses first argument as cache key.
-    var resolver = (options && options.resolver) || noop;
+    var resolver = options.resolver || noop;
 
     if (isFunction(options)) {
         resolver = options;
@@ -19,7 +47,7 @@ module.exports = function(func, timeout, options) {
     }
 
     // Method that allows clearing the cache based on the value being cached.
-    var onCached = options.onCached || noop;
+    var onCached = getOnCached(options);
 
     var cache = {};
 
@@ -70,12 +98,4 @@ module.exports = function(func, timeout, options) {
     return execute;
 };
 
-module.exports.rejectFailedPromise = function rejectFailedPromise(item) {
-    var value = item.value;
-
-    // Don't allow failed promises to be cached
-    if (!isPromise(value))
-        return;
-
-    value.catch(item.clear);
-};
+module.exports.rejectFailedPromise = rejectFailedPromise;

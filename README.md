@@ -28,6 +28,7 @@ throttledFunction.clear(<...args>);
 - **options**:
   - **resolver**: See `cache-key-resolver` argument
   - **onCached**: A callback that gets passed the cache item when a new item is cached.
+  - **rejectFailedPromise**: If `true` will not cache promises resulting in rejection.
 
 #### .clear
 
