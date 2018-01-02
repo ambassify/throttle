@@ -1,6 +1,6 @@
 {
   "name": "@ambassify/throttle",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Throttle depending on function arguments.",
   "main": "index.js",
   "engines": {
