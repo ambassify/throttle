@@ -124,4 +124,105 @@ describe('#throttle', function() {
 
         assert.equal(target.callCount, 3);
     });
+
+    it('Should cache failed promises', function() {
+        const timeout = 20;
+        let hasRejected = false;
+        const fail = sandbox.spy();
+        const target = function() {
+            if (hasRejected)
+                return;
+
+            hasRejected = true;
+            return Promise.reject(new Error('should throw'));
+        };
+
+        const throttled = throttle(target, timeout);
+
+        return throttled(1)
+            .catch(fail)
+            .then(() => throttled(1))
+            .then(
+                () => { throw new Error('should not resolve'); },
+                () => {
+                    assert.equal(fail.callCount, 1);
+                }
+            );
+    });
+
+    it('Should not cache failed promises', function() {
+        const timeout = 20;
+        let hasRejected = false;
+        const fail = sandbox.spy();
+        const target = function() {
+            if (hasRejected)
+                return;
+
+            hasRejected = true;
+            return Promise.reject(new Error('should throw'));
+        };
+
+        const throttled = throttle(target, timeout, { rejectFailedPromise: true });
+
+        return throttled(1)
+            .catch(fail)
+            .then(() => throttled(1))
+            .then(() => {
+                assert.equal(fail.callCount, 1);
+            });
+    });
+
+    it('Should not cache failed promises and invoke onCached', function() {
+        const timeout = 20;
+        let hasRejected = false;
+        const fail = sandbox.spy();
+        const onCached = sandbox.spy();
+        const target = function() {
+            if (hasRejected)
+                return;
+
+            hasRejected = true;
+            return Promise.reject(new Error('should throw'));
+        };
+
+        const throttled = throttle(target, timeout, {
+            rejectFailedPromise: true,
+            onCached
+        });
+
+        return throttled(1)
+            .catch(fail)
+            .then(() => throttled(1))
+            .then(() => {
+                assert.equal(fail.callCount, 1);
+                assert.equal(onCached.callCount, 2);
+            });
+    });
+
+    it('Should invoke onCached', function() {
+        const timeout = 20;
+        const onCached = sandbox.spy();
+        const target = sandbox.spy();
+
+        const throttled = throttle(target, timeout, { onCached });
+
+        throttled(1);
+        throttled(2);
+        throttled(1);
+        throttled(1);
+
+        return sleep(timeout)
+        .then(() => {
+            assert.equal(target.callCount, 2);
+            assert.equal(onCached.callCount, 2);
+
+            throttled(2);
+            assert.equal(target.callCount, 3);
+            assert.equal(onCached.callCount, 3);
+
+            throttled(2);
+            assert.equal(target.callCount, 3);
+            assert.equal(onCached.callCount, 3);
+        });
+    });
 });

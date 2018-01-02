@@ -17,10 +17,10 @@ function rejectFailedPromise(item) {
 }
 
 function getOnCached(options) {
-    var onCached = options.onCached || noop;
+    var onCached = options.onCached;
 
     if (!options.rejectFailedPromise)
-        return onCached;
+        return onCached || noop;
 
     // Cache promises that result in rejection
     if (!isFunction(onCached))
