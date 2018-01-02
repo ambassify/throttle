@@ -1,11 +1,53 @@
 function noop(v) { return v; }
+function is(v, type) { return typeof v === type; }
+function isUndefined(v) { return is(v, 'undefined'); }
+function isFunction(v) { return is(v, 'function'); }
+function isPromise(v) {
+    return v && isFunction(v.then) && isFunction(v.catch);
+}
 
-module.exports = function(func, timeout, resolver) {
-    // By default uses first argument as cache key.
-    resolver = resolver || noop;
+function rejectFailedPromise(item) {
+    var value = item.value;
+
+    // Don't allow failed promises to be cached
+    if (!isPromise(value))
+        return;
+
+    value.catch(item.clear);
+}
+
+function getOnCached(options) {
+    var onCached = options.onCached;
+
+    if (!options.rejectFailedPromise)
+        return onCached || noop;
+
+    // Cache promises that result in rejection
+    if (!isFunction(onCached))
+        return rejectFailedPromise;
+
+    return function(item) {
+        rejectFailedPromise(item);
+        onCached(item);
+    };
+}
+
+module.exports = function(func, timeout, options) {
+    options = options || {};
 
     // Timeout in milliseconds
     timeout = parseInt(timeout, 10);
+
+    // By default uses first argument as cache key.
+    var resolver = options.resolver || noop;
+
+    if (isFunction(options)) {
+        resolver = options;
+        options = {};
+    }
+
+    // Method that allows clearing the cache based on the value being cached.
+    var onCached = getOnCached(options);
 
     var cache = {};
 
@@ -18,13 +60,23 @@ module.exports = function(func, timeout, resolver) {
             return func.apply(null, args);
 
         var key = resolver.apply(null, args);
+        var value = null;
+        var clear = null;
 
         // Populate the cache when there is nothing there yet.
-        if (typeof cache[key] === 'undefined') {
-            cache[key] = { value: func.apply(null, args) };
+        if (isUndefined(cache[key])) {
+            value = func.apply(null, args);
+            clear = function() { delete cache[key]; };
+            cache[key] = {
+                key: key,
+                value: value,
+                clear: clear,
 
-            // Clear cache after timeout
-            setTimeout(function() { delete cache[key]; }, timeout);
+                // Clear cache after timeout
+                timeout: setTimeout(clear, timeout)
+            };
+
+            onCached(cache[key]);
         }
 
         return cache[key].value;
@@ -45,3 +97,5 @@ module.exports = function(func, timeout, resolver) {
 
     return execute;
 };
+
+module.exports.rejectFailedPromise = rejectFailedPromise;

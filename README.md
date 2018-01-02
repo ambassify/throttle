@@ -15,7 +15,7 @@ npm install --save @ambassify/throttle
 ```javascript
 const throttle = require('@ambassify/throttle');
 
-const throttledFunction = throttle(<function-to-throttle>, <timeout>, <cache-key-resolver>);
+const throttledFunction = throttle(<function-to-throttle>, <timeout>, [<cache-key-resolver> | <options>]);
 
 throttledFunction.clear(<...args>);
 ```
@@ -25,11 +25,24 @@ throttledFunction.clear(<...args>);
 - **function-to-throttle**: The function to which access should be throttled, will be called at most once during `timeout` period for the same `cache-key` (by default the first argument to this function).
 - **timeout**: During this period only one call to `function-to-throttle` will be allowed with the same `cache-key`.
 - **cache-key-resolver**: This function generates the `cache-key` used as index into the cache. The resolver receives all of the same arguments as `function-to-throttle`. Default: `The value of the first argument`.
+- **options**:
+  - **resolver**: See `cache-key-resolver` argument
+  - **onCached**: A callback that gets passed the cache item when a new item is cached.
+  - **rejectFailedPromise**: If `true` will not cache promises resulting in rejection.
 
 #### .clear
 
 - When invoked without any arguments the entire result cache is cleared.
 - When arguments **are** supplied they are passed to `cache-key-resolver` to resolve the cache key to remove from cache.
+
+
+#### CacheItem
+
+CacheItems are exposed through the `onCached` callback that can be specified in the throttle options.
+
+- **key**: The cache key for this item
+- **value**: The cached value for this item
+- **clear**: A method to clear this item from cache.
 
 ## Example
 
@@ -56,6 +69,21 @@ myThrottledFunction(1); // 1
 myThrottledFunction(1); // 2
 myThrottledFunction(1); // 2
 myThrottledFunction(1); // 2
+
+const conditionalThrottleFunction = throttle(myFunction, 2000, {
+    onCached: function(item) {
+        // Only cache results for large values of input
+        if (item.key < 10)
+            item.clear();
+    }
+}
+
+conditionalThrottleFunction(1); // 1
+conditionalThrottleFunction(1); // 2
+conditionalThrottleFunction(1); // 3
+
+conditionalThrottleFunction(20); // 23
+conditionalThrottleFunction(20); // 23
 ```
 
 ## Contributing
