@@ -23,7 +23,7 @@ throttledFunction.clear(<...args>);
 #### throttle
 
 - **function-to-throttle**: The function to which access should be throttled, will be called at most once during `timeout` period for the same `cache-key` (by default the first argument to this function).
-- **timeout**: During this period only one call to `function-to-throttle` will be allowed with the same `cache-key`.
+- **timeout**: During this period only one call to `function-to-throttle` will be allowed with the same `cache-key` (in miliseconds).
 - **cache-key-resolver**: This function generates the `cache-key` used as index into the cache. The resolver receives all of the same arguments as `function-to-throttle`. Default: `The value of the first argument`.
 - **options**:
   - **resolver**: See `cache-key-resolver` argument
