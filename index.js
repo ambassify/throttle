@@ -62,19 +62,25 @@ module.exports = function(func, timeout, options) {
         var key = resolver.apply(null, args);
         var value = null;
         var clear = null;
+        var timer = null;
 
         // Populate the cache when there is nothing there yet.
         if (isUndefined(cache[key])) {
             value = func.apply(null, args);
             clear = function() { delete cache[key]; };
+            timer = setTimeout(clear, timeout);
+
             cache[key] = {
                 key: key,
                 value: value,
                 clear: clear,
 
                 // Clear cache after timeout
-                timeout: setTimeout(clear, timeout)
+                timeout: timer
             };
+
+            if (typeof timer.unref === 'function')
+                timer.unref();
 
             onCached(cache[key]);
         }
