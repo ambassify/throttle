@@ -1,6 +1,5 @@
 function noop(v) { return v; }
 function is(v, type) { return typeof v === type; }
-function isUndefined(v) { return is(v, 'undefined'); }
 function isFunction(v) { return is(v, 'function'); }
 function isPromise(v) {
     return v && isFunction(v.then) && isFunction(v.catch);
@@ -49,7 +48,7 @@ module.exports = function(func, timeout, options) {
     // Method that allows clearing the cache based on the value being cached.
     var onCached = getOnCached(options);
 
-    var cache = {};
+    var cache = options.cache || new Map();
 
     function execute() {
         var args = [], args_i = arguments.length;
@@ -65,12 +64,12 @@ module.exports = function(func, timeout, options) {
         var timer = null;
 
         // Populate the cache when there is nothing there yet.
-        if (isUndefined(cache[key])) {
+        if (!cache.has(key)) {
             value = func.apply(null, args);
-            clear = function() { delete cache[key]; };
+            clear = function() { cache.delete(key); };
             timer = setTimeout(clear, timeout);
 
-            cache[key] = {
+            var cacheItem = {
                 key: key,
                 value: value,
                 clear: clear,
@@ -79,18 +78,20 @@ module.exports = function(func, timeout, options) {
                 timeout: timer
             };
 
+            cache.set(key, cacheItem);
+
             if (typeof timer.unref === 'function')
                 timer.unref();
 
-            onCached(cache[key]);
+            onCached(cacheItem);
         }
 
-        return cache[key].value;
+        return cache.get(key).value;
     }
 
     execute.clear = function clear() {
         if (arguments.length < 1) {
-            cache = {};
+            cache.clear();
             return;
         }
 
@@ -98,7 +99,7 @@ module.exports = function(func, timeout, options) {
         while (args_i-- > 0) args[args_i] = arguments[args_i];
 
         var key = resolver.apply(null, args);
-        delete cache[key];
+        cache.delete(key);
     };
 
     return execute;

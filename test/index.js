@@ -225,4 +225,37 @@ describe('#throttle', function() {
             assert.equal(onCached.callCount, 3);
         });
     });
+
+    it('Should accept a cache option', function () {
+        const timeout = 50;
+
+        const cache = {
+            get: sandbox.stub().returns({ value: 1 }),
+            set: sandbox.spy(),
+            has: sandbox.stub().returns(false),
+            delete: sandbox.spy(),
+            clear: sandbox.spy(),
+        };
+
+        const target = sandbox.spy();
+
+        const throttled = throttle(target, timeout, { cache });
+
+        throttled(1);
+        throttled(2);
+        throttled(1);
+        throttled(1);
+
+        // 4 because `has` always returns false
+        assert.equal(target.callCount, 4);
+        assert.equal(cache.has.callCount, 4);
+        assert.equal(cache.set.callCount, 4);
+        assert.equal(cache.get.callCount, 4);
+
+        throttled.clear(1);
+        assert.equal(cache.delete.callCount, 1);
+
+        throttled.clear();
+        assert.equal(cache.clear.callCount, 1);
+    });
 });
