@@ -87,6 +87,37 @@ conditionalThrottleFunction(20); // 23
 conditionalThrottleFunction(20); // 23
 ```
 
+## Caches
+
+This library currently provides one custom caching implementation you can use for the `cache` option.
+
+### LruCache
+
+This cache implementation lets you specifiy a maximum size and will evict the least recently used items in cache when the cache overflows.
+
+#### new LruCache(options)
+
+- **options**:
+   - **maxSize**: The maximum amount of items to keep in cache
+
+#### Example
+
+```js
+const throttle = require('@ambassify/throttle');
+const LruCache = require('@ambassify/throttle/cache/lru');
+
+function myFunction(input) {}
+
+/**
+ * Allow `myFunction` to be called once every 2 seconds for each different `input`
+ * unless it is called more than 20 times with different `input` values. In that
+ * case, it drops the cache item for the least recently used `input`
+ */
+const myThrottledFunction = throttle(myFunction, 2000, {
+    cache: new LruCache({ maxSize: 20 })
+});
+```
+
 ## Contributing
 
 If you have some issue or code you would like to add, feel free to open a Pull Request or Issue and we will look into it as soon as we can.
