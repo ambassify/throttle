@@ -29,6 +29,7 @@ throttledFunction.clear(<...args>);
   - **resolver**: See `cache-key-resolver` argument
   - **cache**: A custom cache instance. It should implement the `Map` method interface of `clear`, `delete`, `get`, `has`, and `set`.
   - **onCached**: A callback that gets passed the cache item when a new item is cached.
+  - **maxSize**: Shortcut to using [LruCache](#lrucache) with this `maxSize` value.
   - **rejectFailedPromise**: If `true` will not cache promises resulting in rejection.
 
 #### .clear

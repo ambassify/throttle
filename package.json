@@ -22,6 +22,7 @@
     "eslint": "^3.15.0",
     "mocha": "^3.2.0",
     "mocha-circleci-reporter": "0.0.2",
+    "mock-require": "^3.0.3",
     "nyc": "^10.1.2",
     "sinon": "^1.17.7",
     "sleep-promise": "^2.0.0"

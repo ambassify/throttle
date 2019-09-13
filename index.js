@@ -1,6 +1,9 @@
+var LruCache = require('./cache/lru');
+
 function noop(v) { return v; }
 function is(v, type) { return typeof v === type; }
 function isFunction(v) { return is(v, 'function'); }
+function isNumber(v) { return is(v, 'number'); }
 function isPromise(v) {
     return v && isFunction(v.then) && isFunction(v.catch);
 }
@@ -13,6 +16,16 @@ function rejectFailedPromise(item) {
         return;
 
     value.catch(item.clear);
+}
+
+function getCache(options) {
+    if (options.cache)
+        return options.cache;
+
+    if (isNumber(options.maxSize) && options.maxSize < Infinity)
+        return new LruCache({ maxSize: options.maxSize });
+
+    return new Map();
 }
 
 function getOnCached(options) {
@@ -45,10 +58,10 @@ module.exports = function(func, timeout, options) {
         options = {};
     }
 
+    var cache = getCache(options);
+
     // Method that allows clearing the cache based on the value being cached.
     var onCached = getOnCached(options);
-
-    var cache = options.cache || new Map();
 
     function execute() {
         var args = [], args_i = arguments.length;

@@ -1,11 +1,27 @@
 const sinon = require('sinon');
 const assert = require('assert');
 const sleep = require('sleep-promise');
+const mock = require('mock-require');
 
 describe('#throttle', function() {
 
     let sandbox = null;
-    const throttle = require('../index');
+    let throttle;
+
+    class MockLruCache {
+        constructor(options) { this._constructorCalled(options); }
+        _constructorCalled(options) {}
+        get() {return { value: 1 } }
+        set() { }
+        has() { return false; }
+        delete() { }
+        clear() { }
+    }
+
+    before(function() {
+        mock('../cache/lru', MockLruCache);
+        throttle = require('../index');
+    })
 
     beforeEach(function() {
         sandbox = sinon.sandbox.create();
@@ -257,5 +273,20 @@ describe('#throttle', function() {
 
         throttled.clear();
         assert.equal(cache.clear.callCount, 1);
+    });
+
+    it('Should use LruCache when maxSize option is set', function () {
+        const timeout = 50;
+        const target = sandbox.spy();
+
+        const constructor = sandbox.spy(MockLruCache.prototype, '_constructorCalled');
+        const get = sandbox.spy(MockLruCache.prototype, 'get');
+
+        const throttled = throttle(target, timeout, { maxSize: 3 });
+        throttled(1);
+
+        sinon.assert.calledOnce(constructor);
+        sinon.assert.calledWith(constructor, sinon.match({ maxSize: 3 }));
+        sinon.assert.calledOnce(get);
     });
 });
