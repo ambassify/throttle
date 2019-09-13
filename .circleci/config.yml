@@ -1,0 +1,17 @@
+version: 2
+jobs:
+    build:
+        docker:
+            - image: node:latest
+        steps:
+            - checkout
+            - restore_cache:
+                key: dependencies-{{ .Branch }}
+            - run: npm install
+            - save_cache:
+                key: dependencies-{{ .Branch }}
+                paths:
+                    - node_modules
+            - run: npm test
+            - store_artifacts:
+                path: coverage
