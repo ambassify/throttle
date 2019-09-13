@@ -27,6 +27,7 @@ throttledFunction.clear(<...args>);
 - **cache-key-resolver**: This function generates the `cache-key` used as index into the cache. The resolver receives all of the same arguments as `function-to-throttle`. Default: `The value of the first argument`.
 - **options**:
   - **resolver**: See `cache-key-resolver` argument
+  - **cache**: A custom cache instance. It should implement the `Map` method interface of `clear`, `delete`, `get`, `has`, and `set`.
   - **onCached**: A callback that gets passed the cache item when a new item is cached.
   - **rejectFailedPromise**: If `true` will not cache promises resulting in rejection.
 
