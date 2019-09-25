@@ -45,6 +45,7 @@ CacheItems are exposed through the `onCached` callback that can be specified in 
 - **key**: The cache key for this item
 - **value**: The cached value for this item
 - **clear**: A method to clear this item from cache.
+- **ttl(timeout)**: A method to adjust the timeout of the cache item. Pass the new **timeout** in milliseconds.
 
 ## Example
 

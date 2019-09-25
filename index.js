@@ -75,27 +75,43 @@ module.exports = function(func, timeout, options) {
         var value = null;
         var clear = null;
         var timer = null;
+        var applyTimeout = null;
+
+        function cancelTimeout() {
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
+        }
 
         // Populate the cache when there is nothing there yet.
         if (!cache.has(key)) {
             value = func.apply(null, args);
-            clear = function() { cache.delete(key); };
-            timer = setTimeout(clear, timeout);
+
+            clear = function () {
+                cancelTimeout();
+                cache.delete(key);
+            };
+
+            applyTimeout = function (newTimeout) {
+                cancelTimeout();
+
+                timer = setTimeout(clear, newTimeout);
+
+                if (typeof timer.unref === 'function')
+                    timer.unref();
+            };
 
             var cacheItem = {
                 key: key,
                 value: value,
                 clear: clear,
-
-                // Clear cache after timeout
-                timeout: timer
+                ttl: applyTimeout
             };
 
             cache.set(key, cacheItem);
 
-            if (typeof timer.unref === 'function')
-                timer.unref();
-
+            applyTimeout(timeout);
             onCached(cacheItem);
         }
 
