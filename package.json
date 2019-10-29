@@ -19,7 +19,7 @@
   "author": "Ambassify <dev@ambassify.com>",
   "license": "MIT",
   "devDependencies": {
-    "eslint": "^3.15.0",
+    "eslint": "^6.6.0",
     "mocha": "^3.2.0",
     "mocha-circleci-reporter": "0.0.2",
     "mock-require": "^3.0.3",
