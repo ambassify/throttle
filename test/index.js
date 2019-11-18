@@ -242,6 +242,40 @@ describe('#throttle', function() {
         });
     });
 
+    it('Should let you update the timeout based on result', function() {
+        const timeout = 10;
+        const newTimeout = timeout * 3;
+        const target = sandbox.stub().returns(newTimeout);
+
+        const onCached = sandbox.spy(item => {
+            assert.equal(item.value, newTimeout);
+            assert.equal(typeof item.ttl, 'function');
+            item.ttl(newTimeout);
+        });
+
+        const throttled = throttle(target, timeout, { onCached });
+
+        throttled(1);
+        throttled(1);
+        assert.equal(target.callCount, 1);
+        assert.equal(onCached.callCount, 1);
+
+        return sleep(timeout * 2)
+            .then(() => {
+                throttled(1);
+                throttled(1);
+                assert.equal(target.callCount, 1);
+                assert.equal(onCached.callCount, 1);
+            })
+            .then(() => sleep(timeout * 2))
+            .then(() => {
+                throttled(1);
+                throttled(1);
+                assert.equal(target.callCount, 2);
+                assert.equal(onCached.callCount, 2);
+            });
+    });
+
     it('Should accept a cache option', function () {
         const timeout = 50;
 
