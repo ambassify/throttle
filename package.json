@@ -3,6 +3,9 @@
   "version": "0.1.6",
   "description": "Throttle depending on function arguments.",
   "main": "index.js",
+  "browser": {
+    "weak-napi": "./browser-weakref"
+  },
   "engines": {
     "node": "6.x.x"
   },
@@ -37,5 +40,8 @@
   "bugs": {
     "url": "https://github.com/ambassify/throttle/issues"
   },
-  "homepage": "https://github.com/ambassify/throttle#readme"
+  "homepage": "https://github.com/ambassify/throttle#readme",
+  "dependencies": {
+    "weak-napi": "^1.0.3"
+  }
 }
