@@ -1,4 +1,5 @@
 var LruCache = require('./cache/lru');
+var weak = require('weak-napi');
 
 function noop(v) { return v; }
 function is(v, type) { return typeof v === type; }
@@ -59,6 +60,15 @@ module.exports = function(func, timeout, options) {
     }
 
     var cache = getCache(options);
+    /**
+     * This creates a weak reference in nodejs.
+     *
+     * A WeakRef ensures that the cache can be garbage collected once it is
+     * longer accessible. If we were not using a WeakRef the setTimeout
+     * would keep a reference, keeping the data alive until the timer
+     * expires.
+     */
+    var weakCache = weak(cache);
 
     // Method that allows clearing the cache based on the value being cached.
     var onCached = getOnCached(options);
@@ -90,7 +100,8 @@ module.exports = function(func, timeout, options) {
 
             clear = function () {
                 cancelTimeout();
-                cache.delete(key);
+                if (!weak.isDead(weakCache))
+                    weak.get(weakCache).delete(key);
             };
 
             applyTimeout = function (newTimeout) {
