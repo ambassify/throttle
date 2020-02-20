@@ -4,7 +4,7 @@
   "description": "Throttle depending on function arguments.",
   "main": "index.js",
   "browser": {
-    "weak-napi": "./browser-weakref"
+    "./weakref": "./weakref-browser"
   },
   "engines": {
     "node": "6.x.x"
