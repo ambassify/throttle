@@ -1,5 +1,5 @@
 var LruCache = require('./cache/lru');
-var weak = require('weak-napi');
+var weak = require('./weakref');
 
 function noop(v) { return v; }
 function is(v, type) { return typeof v === type; }
