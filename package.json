@@ -4,7 +4,7 @@
   "description": "Throttle depending on function arguments.",
   "main": "index.js",
   "browser": {
-    "./weakref": "./weakref-browser"
+    "./weakref": "./weakref-generic"
   },
   "engines": {
     "node": "6.x.x"
@@ -12,7 +12,7 @@
   "scripts": {
     "test": "npm -s run test:lint & npm -s run test:unit",
     "test:lint": "eslint index.js",
-    "test:unit": "nyc mocha",
+    "test:unit": "nyc mocha $HARMONY_OPTIONS",
     "release": "npm version patch && npm publish"
   },
   "keywords": [

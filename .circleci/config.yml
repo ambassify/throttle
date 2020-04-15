@@ -1,6 +1,6 @@
 version: 2
 jobs:
-    build:
+    build-latest: &common-build
         docker:
             - image: node:latest
         steps:
@@ -15,3 +15,35 @@ jobs:
             - run: npm test
             - store_artifacts:
                 path: coverage
+
+    build-v8:
+        <<: *common-build
+        docker:
+            - image: node:8
+
+    build-v10:
+        <<: *common-build
+        docker:
+            - image: node:10
+
+    build-v12:
+        <<: *common-build
+        docker:
+            - image: node:12
+
+    build-v12-weakref:
+        <<: *common-build
+        environment:
+            HARMONY_OPTIONS: --harmony-weak-refs
+        docker:
+            - image: node:12
+
+workflows:
+    version: 2
+    build_and_test:
+        jobs:
+            - build-latest
+            - build-v8
+            - build-v10
+            - build-v12
+            - build-v12-weakref
