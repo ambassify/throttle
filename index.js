@@ -125,6 +125,10 @@ module.exports = function(func, timeout, options) {
             applyTimeout = function (newTimeout) {
                 cancelTimeout();
 
+                // Allow non-expiring entries
+                if (newTimeout === Infinity || newTimeout === false)
+                    return;
+
                 timer = setTimeout(clear, newTimeout);
 
                 if (typeof timer.unref === 'function')
