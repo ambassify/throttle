@@ -1,5 +1,6 @@
 var LruCache = require('./cache/lru');
 var weak = require('./weakref');
+var hash = require('hash-it').default;
 
 function noop(v) { return v; }
 function is(v, type) { return typeof v === type; }
@@ -7,6 +8,23 @@ function isFunction(v) { return is(v, 'function'); }
 function isNumber(v) { return is(v, 'number'); }
 function isPromise(v) {
     return v && isFunction(v.then) && isFunction(v.catch);
+}
+
+function toResolverKey(value) {
+    if (Array.isArray(value) && value.length == 1)
+        return toResolverKey(value[0]);
+
+    if (typeof value != 'object' || !value)
+        return String(value);
+
+    return hash(value);
+}
+
+function defaultResolver() {
+    var args = [], args_i = arguments.length;
+    while (args_i-- > 0) args[args_i] = arguments[args_i];
+
+    return args;
 }
 
 function rejectFailedPromise(item) {
@@ -32,7 +50,7 @@ function getCache(options) {
 function getOnCached(options) {
     var onCached = options.onCached;
 
-    if (!options.rejectFailedPromise)
+    if (options.rejectFailedPromise === false)
         return onCached || noop;
 
     // Cache promises that result in rejection
@@ -48,11 +66,16 @@ function getOnCached(options) {
 module.exports = function(func, timeout, options) {
     options = options || {};
 
+    if (typeof timeout === 'object') {
+        options = timeout;
+        timeout = options.ttl;
+    }
+
     // Timeout in milliseconds
     timeout = parseInt(timeout, 10);
 
     // By default uses first argument as cache key.
-    var resolver = options.resolver || noop;
+    var resolver = options.resolver || defaultResolver;
 
     if (isFunction(options)) {
         resolver = options;
@@ -81,7 +104,7 @@ module.exports = function(func, timeout, options) {
         if (!timeout || timeout < 1)
             return func.apply(null, args);
 
-        var key = resolver.apply(null, args);
+        var key = toResolverKey(resolver.apply(null, args));
         var value = null;
         var clear = null;
         var timer = null;
@@ -106,6 +129,10 @@ module.exports = function(func, timeout, options) {
 
             applyTimeout = function (newTimeout) {
                 cancelTimeout();
+
+                // Allow non-expiring entries
+                if (newTimeout === Infinity || newTimeout === false)
+                    return;
 
                 timer = setTimeout(clear, newTimeout);
 
@@ -138,7 +165,7 @@ module.exports = function(func, timeout, options) {
         var args = [], args_i = arguments.length;
         while (args_i-- > 0) args[args_i] = arguments[args_i];
 
-        var key = resolver.apply(null, args);
+        var key = toResolverKey(resolver.apply(null, args));
         cache.delete(key);
     };
 
