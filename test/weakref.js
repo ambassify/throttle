@@ -49,7 +49,7 @@ describe('weakref', () => {
         if (weak.isUnsupported)
             return this.skip();
 
-        this.timeout(15000);
+        this.timeout(30000);
 
         const ref = (function() {
             const a = { test: 'yes' };
