@@ -50,7 +50,7 @@ function getCache(options) {
 function getOnCached(options) {
     var onCached = options.onCached;
 
-    if (!options.rejectFailedPromise)
+    if (options.rejectFailedPromise === false)
         return onCached || noop;
 
     // Cache promises that result in rejection
