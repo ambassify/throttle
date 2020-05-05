@@ -141,6 +141,48 @@ describe('#throttle', function() {
         assert.equal(target.callCount, 3);
     });
 
+    it('Should allow resolver to return object', function() {
+        const timeout = 20;
+        const target = sandbox.spy();
+        const resolver = sandbox.stub().returns({ id: 1333 });
+
+        const throttled = throttle(target, timeout, resolver);
+
+        throttled(1);
+        throttled(2);
+        throttled(2);
+
+        assert.equal(target.callCount, 1);
+    });
+
+    it('Should allow resolver to return number', function() {
+        const timeout = 20;
+        const target = sandbox.spy();
+        const resolver = sandbox.stub().returns(1333);
+
+        const throttled = throttle(target, timeout, resolver);
+
+        throttled(1);
+        throttled(2);
+        throttled(2);
+
+        assert.equal(target.callCount, 1);
+    });
+
+    it('Should allow resolver to return Date', function() {
+        const timeout = 20;
+        const target = sandbox.spy();
+        const resolver = sandbox.stub().returns(new Date());
+
+        const throttled = throttle(target, timeout, resolver);
+
+        throttled(1);
+        throttled(2);
+        throttled(2);
+
+        assert.equal(target.callCount, 1);
+    });
+
     it('Should cache failed promises', function() {
         const timeout = 20;
         let hasRejected = false;
@@ -153,7 +195,9 @@ describe('#throttle', function() {
             return Promise.reject(new Error('should throw'));
         };
 
-        const throttled = throttle(target, timeout);
+        const throttled = throttle(target, timeout, {
+            rejectFailedPromise: false
+        });
 
         return throttled(1)
             .catch(fail)
@@ -179,6 +223,28 @@ describe('#throttle', function() {
         };
 
         const throttled = throttle(target, timeout, { rejectFailedPromise: true });
+
+        return throttled(1)
+            .catch(fail)
+            .then(() => throttled(1))
+            .then(() => {
+                assert.equal(fail.callCount, 1);
+            });
+    });
+
+    it('Should not cache failed promises by default', function() {
+        const timeout = 20;
+        let hasRejected = false;
+        const fail = sandbox.spy();
+        const target = function() {
+            if (hasRejected)
+                return;
+
+            hasRejected = true;
+            return Promise.reject(new Error('should throw'));
+        };
+
+        const throttled = throttle(target, timeout);
 
         return throttled(1)
             .catch(fail)
