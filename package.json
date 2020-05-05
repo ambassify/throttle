@@ -43,6 +43,6 @@
   "homepage": "https://github.com/ambassify/throttle#readme",
   "dependencies": {
     "hash-it": "^4.0.5",
-    "weak-napi": "^1.0.3"
+    "weak-napi": "^2.0.1"
   }
 }
