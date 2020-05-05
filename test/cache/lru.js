@@ -1,15 +1,12 @@
+/* globals describe, before, afterEach, it */
+
 const sinon = require('sinon');
 const assert = require('assert');
-const sleep = require('sleep-promise');
 
 describe('#cache/lru', function() {
 
-    let sandbox = null;
+    const sandbox = sinon.createSandbox();
     const LruCache = require('../../cache/lru');
-
-    beforeEach(function() {
-        sandbox = sinon.sandbox.create();
-    });
 
     afterEach(function() {
         sandbox.restore();

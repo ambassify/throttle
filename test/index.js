@@ -1,3 +1,5 @@
+/* globals describe, before, afterEach, it */
+
 const sinon = require('sinon');
 const assert = require('assert');
 const sleep = require('sleep-promise');
@@ -5,7 +7,7 @@ const mock = require('mock-require');
 
 describe('#throttle', function() {
 
-    let sandbox = null;
+    const sandbox = sinon.createSandbox();
     let throttle;
 
     class MockLruCache {
@@ -22,10 +24,6 @@ describe('#throttle', function() {
         mock('../cache/lru', MockLruCache);
         throttle = require('../index');
     })
-
-    beforeEach(function() {
-        sandbox = sinon.sandbox.create();
-    });
 
     afterEach(function() {
         sandbox.restore();
