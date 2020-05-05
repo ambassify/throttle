@@ -7,7 +7,7 @@
     "./weakref": "./weakref-generic"
   },
   "engines": {
-    "node": "6.x.x"
+    "node": "10.x.x"
   },
   "scripts": {
     "test": "npm -s run test:lint & npm -s run test:unit",

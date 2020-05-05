@@ -66,6 +66,11 @@ function getOnCached(options) {
 module.exports = function(func, timeout, options) {
     options = options || {};
 
+    if (typeof timeout === 'object') {
+        options = timeout;
+        timeout = options.ttl;
+    }
+
     // Timeout in milliseconds
     timeout = parseInt(timeout, 10);
 

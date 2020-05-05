@@ -54,6 +54,20 @@ describe('#throttle', function() {
         assert.equal(target.callCount, 3);
     });
 
+    it('Should allow timeout to be set using options', async function() {
+        const target = sandbox.spy();
+        const throttled = throttle(target, { ttl: 20 });
+
+        throttled(1);
+        throttled(1);
+        assert.equal(target.callCount, 1);
+
+        await sleep(20);
+
+        throttled(1);
+        assert.equal(target.callCount, 2);
+    });
+
     [0, -1, -200].forEach(function(timeout) {
         it(`Should not cache results when timeout < 1 (${timeout})`, function() {
             const target = sandbox.spy();
