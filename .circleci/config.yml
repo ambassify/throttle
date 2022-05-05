@@ -16,16 +16,6 @@ jobs:
             - store_artifacts:
                 path: coverage
 
-    build-v8:
-        <<: *common-build
-        docker:
-            - image: node:8
-
-    build-v10:
-        <<: *common-build
-        docker:
-            - image: node:10
-
     build-v12:
         <<: *common-build
         docker:
@@ -38,12 +28,23 @@ jobs:
         docker:
             - image: node:12
 
+    build-v14:
+        <<: *common-build
+        docker:
+            - image: node:14
+
+
+    build-v16:
+        <<: *common-build
+        docker:
+            - image: node:16
+
 workflows:
     version: 2
     build_and_test:
         jobs:
             - build-latest
-            - build-v8
-            - build-v10
             - build-v12
             - build-v12-weakref
+            - build-v14
+            - build-v16
