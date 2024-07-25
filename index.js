@@ -1,13 +1,34 @@
-var LruCache = require('./cache/lru');
-var weak = require('./weakref');
-var hash = require('hash-it').default;
+const LruCache = require('./cache/lru');
+const weak = require('./weakref');
+const hash = require('hash-it').default;
 
-function noop(v) { return v; }
-function is(v, type) { return typeof v === type; }
-function isFunction(v) { return is(v, 'function'); }
-function isNumber(v) { return is(v, 'number'); }
-function isPromise(v) {
-    return v && isFunction(v.then) && isFunction(v.catch);
+function noop() { return; }
+function isFunction(v) { return typeof v === 'function'; }
+function isNumber(v) { return typeof v === 'number'; }
+function isPromise(v) { return v && isFunction(v.then) && isFunction(v.catch); }
+function isNil(v) { return v === null || typeof v === 'undefined'; }
+
+const errorHandlers = {
+    clear(err, cacheItem) {
+        cacheItem.clear();
+        throw err;
+    },
+
+    cached(err, cacheItem) {
+        if (cacheItem.initialized)
+            return cacheItem.value;
+
+        throw err;
+    },
+
+    persist(err, cacheItem) {
+        cacheItem.error = err;
+        throw err;
+    },
+};
+
+function defaultResolver(...args) {
+    return args;
 }
 
 function toResolverKey(value) {
@@ -20,69 +41,208 @@ function toResolverKey(value) {
     return hash(value);
 }
 
-function defaultResolver() {
-    var args = [], args_i = arguments.length;
-    while (args_i-- > 0) args[args_i] = arguments[args_i];
-
-    return args;
-}
-
-function rejectFailedPromise(item) {
-    var value = item.value;
-
-    // Don't allow failed promises to be cached
-    if (!isPromise(value))
-        return;
-
-    value.catch(item.clear);
-}
-
 function getCache(options) {
-    if (options.cache)
-        return options.cache;
+    const { cache, maxSize } = options;
 
-    if (isNumber(options.maxSize) && options.maxSize < Infinity)
-        return new LruCache({ maxSize: options.maxSize });
+    if (cache)
+        return cache;
+
+    if (isNumber(maxSize) && maxSize < Infinity)
+        return new LruCache({ maxSize });
 
     return new Map();
 }
 
-function getOnCached(options) {
-    var onCached = options.onCached;
+function getOnError(options = {}) {
+    const { onError } = options;
 
-    if (options.rejectFailedPromise === false)
-        return onCached || noop;
+    if (isFunction(onError))
+        return onError;
 
-    // Cache promises that result in rejection
-    if (!isFunction(onCached))
-        return rejectFailedPromise;
-
-    return function(item) {
-        rejectFailedPromise(item);
-        onCached(item);
-    };
+    return errorHandlers[onError] || errorHandlers.cached;
 }
 
-module.exports = function(func, timeout, options) {
-    options = options || {};
+function execute(func, args, { cacheItem, onError }) {
+    try {
+        const result = func(...args);
 
-    if (typeof timeout === 'object') {
-        options = timeout;
-        timeout = options.ttl;
+        if (!isPromise(result)) {
+            cacheItem.value = result;
+            return result;
+        }
+
+        cacheItem.pending = result
+            .then(() => {
+                cacheItem.value = result;
+                return result;
+            })
+            .catch(err => onError(err, cacheItem));
+
+        return cacheItem.pending;
+    } catch (err) {
+        return onError(err, cacheItem);
+    }
+}
+
+class CacheItem {
+
+    initialized = false;
+    pending = null;
+    key = null;
+
+    #value = null;
+    #error = null;
+    #cache = null;
+    #maxAge = null;
+    #timer = null;
+    #refreshIn = null;
+    #refreshedAt = null;
+    #onUpdated = noop;
+
+    constructor({
+        key,
+        refreshIn,
+        cache,
+        maxAge,
+        onUpdated
+    }) {
+        this.key = key;
+
+        this.#cache = cache;
+        this.#maxAge = maxAge;
+        this.#refreshIn = refreshIn;
+        this.#refreshedAt = null;
+        this.#onUpdated = onUpdated;
     }
 
-    // Timeout in milliseconds
-    timeout = parseInt(timeout, 10);
+    get stale() {
+        if (!this.#refreshedAt)
+            return true;
 
-    // By default uses first argument as cache key.
-    var resolver = options.resolver || defaultResolver;
+        if (this.pending)
+            return false;
 
-    if (isFunction(options)) {
-        resolver = options;
-        options = {};
+        return this.#refreshedAt + this.#refreshIn < Date.now();
     }
 
-    var cache = getCache(options);
+    get value() {
+        return this.#value;
+    }
+
+    set value(v) {
+        this.#error = null;
+        this.#value = v;
+
+        this.#updated();
+    }
+
+    get error() {
+        return this.#error;
+    }
+
+    set error(err) {
+        // When setting an error for a pending promise, set is as a rejection
+        // to make sure the throttled function doesn't throw is synchronously
+        if (this.pending) {
+            this.value = Promise.reject(err);
+            return;
+        }
+
+        this.#error = err;
+        this.#value = null;
+
+        this.#updated();
+    }
+
+    #clearTimeout() {
+        if (this.#timer) {
+            clearTimeout(this.#timer);
+            this.#timer = null;
+        }
+    }
+
+    #updated() {
+        this.initialized = true;
+        this.pending = null;
+        this.#refreshedAt = Date.now();
+
+        this.#clearTimeout();
+        this.maxAge(this.#maxAge);
+
+        this.#onUpdated(this);
+    }
+
+    clear() {
+        this.#clearTimeout();
+
+        if (!weak.isDead(this.#cache))
+            weak.get(this.#cache).delete(this.key);
+    }
+
+    refreshIn(refreshIn) {
+        this.#refreshIn = refreshIn;
+    }
+
+    maxAge(maxAge) {
+        if (isNil(maxAge))
+            return this.#maxAge;
+
+        this.#clearTimeout();
+
+        // Allow non-expiring entries
+        if (maxAge === Infinity || maxAge === false)
+            return;
+
+        this.#timer = setTimeout(this.clear.bind(this), maxAge);
+
+        if (isFunction(this.#timer.unref))
+            this.#timer.unref();
+    }
+}
+
+/**
+ *
+ * @param {Function} func The function to throttle
+ * @param {Number} refreshIn How often the cache should be refreshed
+ * @param {ThrottleOptions} options
+ * @returns
+ */
+module.exports = function throttle(func, refreshIn, options = {}) {
+
+    if (refreshIn && typeof refreshIn === 'object') {
+        options = refreshIn;
+        refreshIn = options?.refreshIn;
+    }
+
+    refreshIn = parseInt(refreshIn, 10);
+
+    // No need to throttle if func needs to be refreshed on every invocation
+    if (!refreshIn || refreshIn < 1) {
+        const notThrottled = (...args) => func(...args);
+        notThrottled.clear = noop;
+        return notThrottled;
+    }
+
+    /**
+     * When no cache options are found, we default to a "maxAge" that matches
+     * "refreshIn".
+     *
+     * @todo: this matches "old" throttle, meaning that to benefit from the new
+     * improvements you will always have to pass options:
+     * throttle(func, MINUTE, { maxAge: HOUR });
+     * Is that what we want? Infinite cache on the other hand is prone to memory leaks
+     */
+    if (
+        isNil(options.cache) &&
+        isNil(options.maxAge) &&
+        isNil(options.maxSize)
+    ) options.maxAge = refreshIn;
+
+    const resolver = options?.resolver || defaultResolver;
+    const cache = getCache({ ...options, refreshIn });
+    const onError = getOnError(options);
+    const onUpdated = options?.onUpdated || noop;
+
     /**
      * This creates a weak reference in nodejs.
      *
@@ -91,85 +251,45 @@ module.exports = function(func, timeout, options) {
      * would keep a reference, keeping the data alive until the timer
      * expires.
      */
-    var weakCache = weak(cache);
+    const weakCache = weak(cache);
 
-    // Method that allows clearing the cache based on the value being cached.
-    var onCached = getOnCached(options);
+    function throttled(...args) {
+        const key = toResolverKey(resolver(...args));
 
-    function execute() {
-        var args = [], args_i = arguments.length;
-        while (args_i-- > 0) args[args_i] = arguments[args_i];
-
-        // If there is no timeout set we simply call `func`
-        if (!timeout || timeout < 1)
-            return func.apply(null, args);
-
-        var key = toResolverKey(resolver.apply(null, args));
-        var value = null;
-        var clear = null;
-        var timer = null;
-        var applyTimeout = null;
-
-        function cancelTimeout() {
-            if (timer) {
-                clearTimeout(timer);
-                timer = null;
-            }
-        }
-
-        // Populate the cache when there is nothing there yet.
         if (!cache.has(key)) {
-            value = func.apply(null, args);
-
-            clear = function () {
-                cancelTimeout();
-                if (!weak.isDead(weakCache))
-                    weak.get(weakCache).delete(key);
-            };
-
-            applyTimeout = function (newTimeout) {
-                cancelTimeout();
-
-                // Allow non-expiring entries
-                if (newTimeout === Infinity || newTimeout === false)
-                    return;
-
-                timer = setTimeout(clear, newTimeout);
-
-                if (typeof timer.unref === 'function')
-                    timer.unref();
-            };
-
-            var cacheItem = {
-                key: key,
-                value: value,
-                clear: clear,
-                ttl: applyTimeout
-            };
-
-            cache.set(key, cacheItem);
-
-            applyTimeout(timeout);
-            onCached(cacheItem);
+            cache.set(key, new CacheItem({
+                key,
+                refreshIn,
+                cache: weakCache,
+                maxAge: options.maxAge,
+                onUpdated,
+            }));
         }
 
-        return cache.get(key).value;
+        const cacheItem = cache.get(key);
+
+        if (cacheItem.stale)
+            return execute(func, args, { cacheItem, onError });
+
+        if (!cacheItem.initialized)
+            return cacheItem.pending;
+
+        if (cacheItem.error)
+            throw cacheItem.error;
+
+        return cacheItem.value;
     }
 
-    execute.clear = function clear() {
-        if (arguments.length < 1) {
+    throttled.clear = function clear(...args) {
+        if (!args.length) {
             cache.clear();
             return;
         }
 
-        var args = [], args_i = arguments.length;
-        while (args_i-- > 0) args[args_i] = arguments[args_i];
+        const key = toResolverKey(resolver(...args));
 
-        var key = toResolverKey(resolver.apply(null, args));
         cache.delete(key);
     };
 
-    return execute;
+    return throttled;
 };
-
-module.exports.rejectFailedPromise = rejectFailedPromise;

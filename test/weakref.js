@@ -1,3 +1,5 @@
+/* globals describe, before, it */
+
 const assert = require('assert');
 
 describe('weakref', () => {

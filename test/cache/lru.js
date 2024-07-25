@@ -52,7 +52,7 @@ describe('#cache/lru', function() {
         assert(!cache.has(k1));
         assert(!cache.has(k2));
         assert(!cache.has(k3));
-    })
+    });
 
     it('should not keep more than `options.maxSize` values in cache', function() {
         const cache = new LruCache({ maxSize: 3 });
@@ -66,7 +66,7 @@ describe('#cache/lru', function() {
         assert(cache.has(2));
         assert(cache.has(3));
         assert(cache.has(4));
-    })
+    });
 
     it('should evict the least recently used item', function() {
         const cache = new LruCache({ maxSize: 3 });
@@ -82,7 +82,7 @@ describe('#cache/lru', function() {
         assert(cache.has(1));
         assert(cache.has(3));
         assert(cache.has(4));
-    })
+    });
 
     it('should keep eviction in sync when items are deleted', function() {
         const cache = new LruCache({ maxSize: 3 });
@@ -97,5 +97,5 @@ describe('#cache/lru', function() {
         assert(cache.has(1));
         assert(cache.has(3));
         assert(cache.has(4));
-    })
+    });
 });

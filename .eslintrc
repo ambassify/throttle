@@ -4,11 +4,15 @@
         "node": true,
         "es6": true
     },
+    "parserOptions": {
+        "ecmaVersion": "latest"
+    },
     "extends": [ "eslint:recommended" ],
     "rules": {
         "no-console": 0,
         "no-debugger": 0,
         "no-shadow": 2,
+        "no-undef": 2,
         "no-use-before-define": 2,
         "no-unexpected-multiline": 0,
         "eqeqeq": 0,
