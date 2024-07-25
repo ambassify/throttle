@@ -1,5 +1,3 @@
-/* globals describe, before, it */
-
 const assert = require('assert');
 
 describe('weakref', () => {
@@ -7,7 +5,7 @@ describe('weakref', () => {
     let weak;
 
     before(() => {
-        weak = require('../weakref');
+        weak = require('../src/weakref').weak;
     });
 
     it ('should have WeakRef when harmony flag is enabled', function() {
@@ -18,16 +16,6 @@ describe('weakref', () => {
 
         assert.notEqual(typeof WeakRef, 'undefined');
         assert.notEqual(weak.isUnsupported, true, 'reported unsupported');
-    });
-
-    it ('should create a weak ref', () => {
-        const a = { test: 'yes' };
-
-        const ref = weak(a);
-
-        assert(ref);
-
-        assert.strictEqual(weak.get(ref), a);
     });
 
     it ('should create a weak ref', () => {

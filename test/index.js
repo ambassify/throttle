@@ -1,5 +1,3 @@
-/* globals describe, before, afterEach, it */
-
 const sinon = require('sinon');
 const assert = require('assert');
 const sleep = require('sleep-promise');
@@ -21,8 +19,8 @@ describe('#throttle', function() {
     }
 
     before(function() {
-        mock('../cache/lru', MockLruCache);
-        throttle = require('../index');
+        mock('../src/cache/lru', MockLruCache);
+        throttle = require('../src/index');
     });
 
     afterEach(function() {
@@ -68,7 +66,7 @@ describe('#throttle', function() {
         assert.equal(target.callCount, 2);
     });
 
-    [0, -1, -200].forEach(function(refreshIn) {
+    [ 0, -1, -200 ].forEach(function(refreshIn) {
         it(`Should not cache results when refreshIn < 1 (${refreshIn})`, function() {
             const target = sandbox.spy();
             const throttled = throttle(target, refreshIn);
@@ -296,8 +294,8 @@ describe('#throttle', function() {
             return Promise.resolve();
         });
 
-        const onError = sandbox.spy(function (err, cacheItem) {
-            if(err === 'ignore')
+        const onError = sandbox.spy(function(err, cacheItem) {
+            if (err === 'ignore')
                 return;
 
             if (err === 'throw')
@@ -399,7 +397,7 @@ describe('#throttle', function() {
             });
     });
 
-    it('Should accept a cache option', function () {
+    it('Should accept a cache option', function() {
         const refreshIn = 50;
 
         const cache = {
@@ -432,7 +430,7 @@ describe('#throttle', function() {
         assert.equal(cache.clear.callCount, 1);
     });
 
-    it('Should use LruCache when maxSize option is set', function () {
+    it('Should use LruCache when maxSize option is set', function() {
         const refreshIn = 50;
         const target = sandbox.spy();
 

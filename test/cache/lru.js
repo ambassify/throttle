@@ -1,18 +1,16 @@
-/* globals describe, before, afterEach, it */
-
 const sinon = require('sinon');
 const assert = require('assert');
 
 describe('#cache/lru', function() {
 
     const sandbox = sinon.createSandbox();
-    const LruCache = require('../../cache/lru');
+    const LruCache = require('../../src/cache/lru');
 
     afterEach(function() {
         sandbox.restore();
     });
 
-    it('should work like the default Map cache', function () {
+    it('should work like the default Map cache', function() {
         const cache = new LruCache();
 
         const k1 = 'foo';
