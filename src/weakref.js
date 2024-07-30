@@ -1,4 +1,6 @@
-// Available since Node@14.9 or since Node@12 using --harmony-weak-refs flag
+// Available since Node@14.9 and on almost all browsers (https://caniuse.com/mdn-javascript_builtins_weakref)
+// We add a fallback without weakref just in case, it works but prevents cached
+// values from being garbage-collected until their timers run out
 const supportsWeakRef = (typeof WeakRef != 'undefined');
 
 let weak;

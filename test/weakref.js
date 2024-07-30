@@ -8,16 +8,6 @@ describe('weakref', () => {
         weak = require('../src/weakref').weak;
     });
 
-    it ('should have WeakRef when harmony flag is enabled', function() {
-        const { HARMONY_OPTIONS = '' } = process.env;
-
-        if (!/--harmony-weak-refs/.test(HARMONY_OPTIONS))
-            return this.skip();
-
-        assert.notEqual(typeof WeakRef, 'undefined');
-        assert.notEqual(weak.isUnsupported, true, 'reported unsupported');
-    });
-
     it ('should create a weak ref', () => {
         const a = { test: 'yes' };
 

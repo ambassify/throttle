@@ -1,51 +1,78 @@
 const { noop, isNil, isFunction } = require('../utils');
 const { weak } = require('../weakref');
 
-module.exports = class CacheItem {
+/**
+ * An item in the cache
+ */
+class CacheItem {
 
+    /**
+     * Whether or not the item has its initial value
+     */
     initialized = false;
+
+    /**
+     * The pending promise when throttle is currently running but already has
+     * a previous value
+     */
     pending = null;
+
+    /**
+     * The key for this cache item
+     */
     key = null;
 
     #value = null;
     #error = null;
-    #cache = null;
+    #weakCache = null;
     #maxAge = null;
     #timer = null;
-    #refreshIn = null;
-    #refreshedAt = null;
+    #delay = null;
+    #updatedAt = null;
     #onUpdated = noop;
 
     constructor({
         key,
-        refreshIn,
-        cache,
+        delay,
+        weakCache,
         maxAge,
         onUpdated
     }) {
         this.key = key;
 
-        this.#cache = cache;
+        this.#weakCache = weakCache;
         this.#maxAge = maxAge;
-        this.#refreshIn = refreshIn;
-        this.#refreshedAt = null;
+        this.#delay = delay;
+        this.#updatedAt = null;
         this.#onUpdated = onUpdated;
     }
 
+    /**
+     * Whether or not the cache item's value is considered stale based on the
+     * last time it was updated and its "delay" option.
+     */
     get stale() {
-        if (!this.#refreshedAt)
-            return true;
-
         if (this.pending)
             return false;
 
-        return this.#refreshedAt + this.#refreshIn < Date.now();
+        if (!this.#updatedAt)
+            return true;
+
+        if (!this.#delay)
+            return true;
+
+
+        return this.#updatedAt + this.#delay <= Date.now();
     }
 
     get value() {
         return this.#value;
     }
 
+    /**
+     * Current value of the cache item. When this is set, all timers and the like
+     * for the item are also reset
+     */
     set value(v) {
         this.#error = null;
         this.#value = v;
@@ -57,6 +84,9 @@ module.exports = class CacheItem {
         return this.#error;
     }
 
+    /**
+     * Same as "value" but used to indicate the result of throttled is an error
+     */
     set error(err) {
         // When setting an error for a pending promise, set is as a rejection
         // to make sure the throttled function doesn't throw is synchronously
@@ -81,7 +111,7 @@ module.exports = class CacheItem {
     #updated() {
         this.initialized = true;
         this.pending = null;
-        this.#refreshedAt = Date.now();
+        this.#updatedAt = Date.now();
 
         this.#clearTimeout();
         this.maxAge(this.#maxAge);
@@ -89,17 +119,30 @@ module.exports = class CacheItem {
         this.#onUpdated(this);
     }
 
+    /**
+     * Clear the item from throttled's cache
+     */
     clear() {
         this.#clearTimeout();
 
-        if (!weak.isDead(this.#cache))
-            weak.get(this.#cache).delete(this.key);
+        if (!weak.isDead(this.#weakCache))
+            weak.get(this.#weakCache).delete(this.key);
     }
 
-    refreshIn(refreshIn) {
-        this.#refreshIn = refreshIn;
+    /**
+     * Update this specific item's "delay"
+     *
+     * @param {Number} delay
+     */
+    delay(delay) {
+        this.#delay = delay;
     }
 
+    /**
+     * Update this specific item's "maxAge"
+     *
+     * @param {Number | false} maxAge
+     */
     maxAge(maxAge) {
         if (isNil(maxAge))
             return this.#maxAge;
@@ -115,4 +158,6 @@ module.exports = class CacheItem {
         if (isFunction(this.#timer.unref))
             this.#timer.unref();
     }
-};
+}
+
+module.exports = CacheItem;

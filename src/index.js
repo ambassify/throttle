@@ -1,3 +1,8 @@
+/**
+ * A module for throttling functions
+ * @module @ambassify/throttle
+ */
+
 const hash = require('hash-it').default;
 
 const LruCache = require('./cache/lru');
@@ -73,57 +78,89 @@ function execute(func, args, { cacheItem, onError }) {
                 cacheItem.value = result;
                 return result;
             })
-            .catch(err => onError(err, cacheItem));
+            .catch(err => onError(err, cacheItem))
+            .finally(() => { cacheItem.pending = null; });
 
         return cacheItem.pending;
     } catch (err) {
         return onError(err, cacheItem);
     }
 }
+
 /**
+ * @typedef {Object} ThrottleOptions
+ *
+ * @property {number} delay How much time must have been elapsed for `func` to
+ *      be invoked again when there's a chached result available
+ *
+ * @property {number?} maxAge How long are items allowed to remain in cache. Unlimited by default?
+ * @property {number?} maxSize How long are items allowed to remain in cache. Unlimited by default.
+ * @property {Map} cache Specify a custom cache for throttle to use. Must provide methods that match Map's equivalent: has, get, set, delete, clear
+ * @property {Function} resolver Given the same arguments used to invoke `func` return only what's important to build the cache key.
+ *
+ * @property {Function} onUpdated Invoked with the `cacheItem` whenever the item is updated.
+ *
+ * @property {'clear' | 'cached' | 'persist' | Function} onError Error handler
+ *      to use when "func" throws or rejects.
+ *
+ *      - `clear`: The cache is cleared and the error is thrown
+ *      - `persist`: The error is saved into cache and thrown
+ *      - `cached`: If a previous value is in cache, it will be returned, if not the error will be thrown
+ *      - a custom function that receives the error as first param and cacheItem as the second, when specified
+ *        the throttled function won't touch the cache when an error occurs, it's up to this handler
+ *        to interact with cacheItem.
+ */
+
+/**
+ * @typedef {Function} ThrottledFunction
+ *
+ * The throttled function.
+ *
+ * @property {Function} clear When invoked without any arguments the entire cache
+ *      is cleared, when **are** supplied they are passed, the item for those
+ *      arguments is removed from cache.
+ */
+
+/**
+ * Creates a throttled version of `func`. `func` will only be invoked when its
+ * result is not in the throttled function's cache or the time between the
+ * current and last invocation is larger than what's specified by `delay`.
+ *
+ * If `func` is async, the throttled function will immediately return a value
+ * from cache (if available) while `func` is executing.
  *
  * @param {Function} func The function to throttle
- * @param {Number} refreshIn How often the cache should be refreshed
  * @param {ThrottleOptions} options
- * @returns
+ * @returns {ThrottledFunction} The throttled version of "func"
+ *
+ * @alias module:@ambassify/throttle
+ *
+ * @example
+ * const throttle = require('@ambassify/throttle');
+ *
+ * const throttled = throttle(<function-to-throttle>, <options>);
+ *
+ * throttled('hello');
+ * throttled.clear(<...args>);
  */
-module.exports = function throttle(func, refreshIn, options = {}) {
+function throttle(func, options = {}) {
+    if (!isFunction(func))
+        throw new Error('First parameter to throttle must be a function.');
 
-    if (refreshIn && typeof refreshIn === 'object') {
-        options = refreshIn;
-        refreshIn = options?.refreshIn;
-    }
-
-    refreshIn = parseInt(refreshIn, 10);
-
-    // No need to throttle if func needs to be refreshed on every invocation
-    if (!refreshIn || refreshIn < 1) {
-        const notThrottled = (...args) => func(...args);
-        notThrottled.clear = noop;
-        return notThrottled;
-    }
-
-    /**
-     * When no cache options are found, we default to a "maxAge" that matches
-     * "refreshIn".
-     *
-     * @todo: this matches "old" throttle, meaning that to benefit from the new
-     * improvements you will always have to pass options:
-     * throttle(func, MINUTE, { maxAge: HOUR });
-     * Is that what we want? Infinite cache on the other hand is prone to memory leaks
-     */
     if (
         isNil(options.cache) &&
         isNil(options.maxAge) &&
         isNil(options.maxSize)
-    ) options.maxAge = refreshIn;
+    ) throw new Error('No cache limitation options set, set at least one of "cache", "maxAge", or "maxSize".');
 
-    const resolver = options?.resolver || defaultResolver;
-    const cache = getCache({ ...options, refreshIn });
+    const delay = parseInt(options.delay, 10);
+    const maxAge = options.maxAge || false;
+    const resolver = options.resolver || defaultResolver;
+    const cache = getCache({ ...options, maxAge, delay });
     const onError = getOnError(options);
-    const onUpdated = options?.onUpdated || noop;
+    const onUpdated = options.onUpdated || noop;
 
-    /**
+    /*
      * This creates a weak reference in nodejs.
      *
      * A WeakRef ensures that the cache can be garbage collected once it is
@@ -139,9 +176,9 @@ module.exports = function throttle(func, refreshIn, options = {}) {
         if (!cache.has(key)) {
             cache.set(key, new CacheItem({
                 key,
-                refreshIn,
-                cache: weakCache,
-                maxAge: options.maxAge,
+                delay,
+                weakCache,
+                maxAge,
                 onUpdated,
             }));
         }
@@ -160,6 +197,11 @@ module.exports = function throttle(func, refreshIn, options = {}) {
         return cacheItem.value;
     }
 
+    /**
+     * When invoked without any arguments the entire result cache is cleared, when
+     * **are** supplied they are passed, the item for those arguments is removed
+     * from cache.
+     */
     throttled.clear = function clear(...args) {
         if (!args.length) {
             cache.clear();
@@ -172,4 +214,6 @@ module.exports = function throttle(func, refreshIn, options = {}) {
     };
 
     return throttled;
-};
+}
+
+module.exports = throttle;

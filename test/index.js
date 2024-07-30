@@ -1,7 +1,7 @@
 const sinon = require('sinon');
 const assert = require('assert');
-const sleep = require('sleep-promise');
 const mock = require('mock-require');
+const { setTimeout } = require('timers/promises');
 
 describe('#throttle', function() {
 
@@ -29,7 +29,7 @@ describe('#throttle', function() {
 
     it('Should cache results', function() {
         const target = sandbox.spy();
-        const throttled = throttle(target, 200);
+        const throttled = throttle(target, { delay: 200, maxSize: Infinity });
 
         throttled(1);
         throttled(2);
@@ -41,9 +41,9 @@ describe('#throttle', function() {
         assert.equal(target.callCount, 3);
     });
 
-    it('Should not cache results when refreshIn not set', function() {
+    it('Should not cache results when delay not set', function() {
         const target = sandbox.spy();
-        const throttled = throttle(target);
+        const throttled = throttle(target, { maxSize: Infinity });
 
         throttled(1);
         throttled(2);
@@ -52,24 +52,24 @@ describe('#throttle', function() {
         assert.equal(target.callCount, 3);
     });
 
-    it('Should allow refreshIn to be set using options', async function() {
+    it('Should allow delay to be set using options', async function() {
         const target = sandbox.spy();
-        const throttled = throttle(target, { refreshIn: 20 });
+        const throttled = throttle(target, { delay: 20, maxSize: Infinity });
 
         throttled(1);
         throttled(1);
         assert.equal(target.callCount, 1);
 
-        await sleep(20);
+        await setTimeout(20);
 
         throttled(1);
         assert.equal(target.callCount, 2);
     });
 
-    [ 0, -1, -200 ].forEach(function(refreshIn) {
-        it(`Should not cache results when refreshIn < 1 (${refreshIn})`, function() {
+    [ 0, -1, -200 ].forEach(function(delay) {
+        it(`Should not cache results when delay < 1 (${delay})`, function() {
             const target = sandbox.spy();
-            const throttled = throttle(target, refreshIn);
+            const throttled = throttle(target, { delay, maxSize: Infinity });
 
             throttled(1);
             throttled(2);
@@ -80,9 +80,9 @@ describe('#throttle', function() {
     });
 
     it('Should expire cache entries', function() {
-        const refreshIn = 20;
+        const delay = 20;
         const target = sandbox.spy();
-        const throttled = throttle(target, refreshIn);
+        const throttled = throttle(target, { delay, maxSize: Infinity });
 
         throttled(1);
         throttled(2);
@@ -90,7 +90,7 @@ describe('#throttle', function() {
 
         assert.equal(target.callCount, 2);
 
-        return sleep(refreshIn)
+        return setTimeout(delay)
             .then(() => {
                 assert.equal(target.callCount, 2);
 
@@ -103,9 +103,9 @@ describe('#throttle', function() {
     });
 
     it('Should clear cache on `.clear()`', function() {
-        const refreshIn = 20;
+        const delay = 20;
         const target = sandbox.spy();
-        const throttled = throttle(target, refreshIn);
+        const throttled = throttle(target, { delay, maxSize: Infinity });
 
         throttled(1);
         throttled(2);
@@ -116,9 +116,9 @@ describe('#throttle', function() {
     });
 
     it('Should clear specific cache entries on `.clear()`', function() {
-        const refreshIn = 20;
+        const delay = 20;
         const target = sandbox.spy();
-        const throttled = throttle(target, refreshIn);
+        const throttled = throttle(target, { delay, maxSize: Infinity });
 
         throttled(1);
         throttled(2);
@@ -133,7 +133,7 @@ describe('#throttle', function() {
     });
 
     it('Should call resolver', function() {
-        const refreshIn = 20;
+        const delay = 20;
         const target = sandbox.spy();
         const resolver = sandbox.stub();
         resolver.withArgs(1).onFirstCall().returns(1);
@@ -142,7 +142,7 @@ describe('#throttle', function() {
             .onSecondCall().returns(3);
         resolver.throws('Invalid resolver arguments');
 
-        const throttled = throttle(target, refreshIn, { resolver });
+        const throttled = throttle(target, { delay, maxSize: Infinity, resolver });
 
         throttled(1);
         throttled(2);
@@ -152,11 +152,11 @@ describe('#throttle', function() {
     });
 
     it('Should allow resolver to return object', function() {
-        const refreshIn = 20;
+        const delay = 20;
         const target = sandbox.spy();
         const resolver = sandbox.stub().returns({ id: 1333 });
 
-        const throttled = throttle(target, refreshIn, { resolver });
+        const throttled = throttle(target, { delay, maxSize: Infinity, resolver });
 
         throttled(1);
         throttled(2);
@@ -166,11 +166,11 @@ describe('#throttle', function() {
     });
 
     it('Should allow resolver to return number', function() {
-        const refreshIn = 20;
+        const delay = 20;
         const target = sandbox.spy();
         const resolver = sandbox.stub().returns(1333);
 
-        const throttled = throttle(target, refreshIn, { resolver });
+        const throttled = throttle(target, { delay, maxSize: Infinity, resolver });
 
         throttled(1);
         throttled(2);
@@ -180,11 +180,11 @@ describe('#throttle', function() {
     });
 
     it('Should allow resolver to return Date', function() {
-        const refreshIn = 20;
+        const delay = 20;
         const target = sandbox.spy();
         const resolver = sandbox.stub().returns(new Date());
 
-        const throttled = throttle(target, refreshIn, { resolver });
+        const throttled = throttle(target, { delay, maxSize: Infinity, resolver });
 
         throttled(1);
         throttled(2);
@@ -194,7 +194,7 @@ describe('#throttle', function() {
     });
 
     it('Should cache failed promises when "onError: persist"', async function() {
-        const refreshIn = 20;
+        const delay = 20;
         const fail = sandbox.spy();
 
         let hasRejected = false;
@@ -207,7 +207,7 @@ describe('#throttle', function() {
             return Promise.reject(new Error('should throw'));
         });
 
-        const throttled = throttle(target, refreshIn, { onError: 'persist' });
+        const throttled = throttle(target, { delay, maxSize: Infinity , onError: 'persist' });
 
         await throttled(1).catch(fail);
         await throttled(1).catch(fail);
@@ -215,7 +215,7 @@ describe('#throttle', function() {
         assert.equal(target.callCount, 1);
         assert.equal(fail.callCount, 2);
 
-        await sleep(20);
+        await setTimeout(20);
         await throttled(1).catch(fail);
         assert.equal(target.callCount, 2);
         assert.equal(fail.callCount, 2);
@@ -223,7 +223,7 @@ describe('#throttle', function() {
     });
 
     it('Should always reject failed promises when "onError: clear"', function() {
-        const refreshIn = 20;
+        const delay = 20;
         let hasRejected = false;
         const fail = sandbox.spy();
         const target = function() {
@@ -234,7 +234,7 @@ describe('#throttle', function() {
             return Promise.reject(new Error('should throw'));
         };
 
-        const throttled = throttle(target, refreshIn, { onError: 'clear' });
+        const throttled = throttle(target, { delay, maxSize: Infinity , onError: 'clear' });
 
         return throttled(1)
             .catch(fail)
@@ -245,7 +245,7 @@ describe('#throttle', function() {
     });
 
     it('Should return cached values on rejections by default', async function() {
-        const refreshIn = 20;
+        const delay = 20;
         const maxAge = 100;
         const fail = sandbox.spy();
 
@@ -259,18 +259,18 @@ describe('#throttle', function() {
             return Promise.resolve();
         };
 
-        const throttled = throttle(target, refreshIn, { maxAge });
+        const throttled = throttle(target, { delay, maxAge });
 
         await throttled(1).catch(fail);
 
-        await sleep(20);
+        await setTimeout(20);
         await throttled(1).catch(fail);
 
-        await sleep(20);
+        await setTimeout(20);
         await throttled(1).catch(fail);
 
         // Value no longer cached, should fail now
-        await sleep(80);
+        await setTimeout(80);
         await throttled(1).catch(fail);
         await throttled(1).catch(fail);
 
@@ -278,7 +278,7 @@ describe('#throttle', function() {
     });
 
     it('Should call onError for custom error handling', async function() {
-        const refreshIn = 20;
+        const delay = 20;
         const fail = sandbox.spy();
 
         const errors = [
@@ -307,7 +307,7 @@ describe('#throttle', function() {
             }
         });
 
-        const throttled = throttle(target, refreshIn, { onError });
+        const throttled = throttle(target, { delay, maxSize: Infinity, onError });
 
         // "ignore" error
         await throttled(1).catch(fail);
@@ -316,7 +316,7 @@ describe('#throttle', function() {
         assert.equal(onError.callCount, 1);
         assert.equal(target.callCount, 1);
 
-        await sleep(20);
+        await setTimeout(20);
 
         // "throw" error
         await throttled(1).catch(fail);
@@ -336,18 +336,18 @@ describe('#throttle', function() {
     });
 
     it('Should invoke onUpdated', function() {
-        const refreshIn = 20;
+        const delay = 20;
         const onUpdated = sandbox.spy();
         const target = sandbox.spy();
 
-        const throttled = throttle(target, refreshIn, { onUpdated });
+        const throttled = throttle(target, { delay, onUpdated, maxSize: Infinity });
 
         throttled(1);
         throttled(2);
         throttled(1);
         throttled(1);
 
-        return sleep(refreshIn)
+        return setTimeout(delay)
             .then(() => {
                 assert.equal(target.callCount, 2);
                 assert.equal(onUpdated.callCount, 2);
@@ -362,33 +362,33 @@ describe('#throttle', function() {
             });
     });
 
-    it('Should let you update the refreshIn based on result', function() {
+    it('Should let you update the delay based on result', function() {
         const maxAge = 100;
-        const refreshIn = 10;
-        const newRefreshIn = 30;
-        const target = sandbox.stub().returns(newRefreshIn);
+        const delay = 10;
+        const newDelay = 30;
+        const target = sandbox.stub().returns(newDelay);
 
         const onUpdated = sandbox.spy(item => {
-            assert.equal(item.value, newRefreshIn);
-            assert.equal(typeof item.refreshIn, 'function');
-            item.refreshIn(newRefreshIn);
+            assert.equal(item.value, newDelay);
+            assert.equal(typeof item.delay, 'function');
+            item.delay(newDelay);
         });
 
-        const throttled = throttle(target, refreshIn, { maxAge, onUpdated });
+        const throttled = throttle(target, { delay, maxAge, onUpdated });
 
         throttled(1);
         throttled(1);
         assert.equal(target.callCount, 1);
         assert.equal(onUpdated.callCount, 1);
 
-        return sleep(refreshIn * 2)
+        return setTimeout(delay * 2)
             .then(() => {
                 throttled(1);
                 throttled(1);
                 assert.equal(target.callCount, 1);
                 assert.equal(onUpdated.callCount, 1);
             })
-            .then(() => sleep(refreshIn * 2))
+            .then(() => setTimeout(delay * 2))
             .then(() => {
                 throttled(1);
                 throttled(1);
@@ -398,7 +398,7 @@ describe('#throttle', function() {
     });
 
     it('Should accept a cache option', function() {
-        const refreshIn = 50;
+        const delay = 50;
 
         const cache = {
             get: sandbox.stub().returns({ value: 1, stale: true }),
@@ -410,7 +410,7 @@ describe('#throttle', function() {
 
         const target = sandbox.spy();
 
-        const throttled = throttle(target, refreshIn, { cache });
+        const throttled = throttle(target, { delay, cache });
 
         throttled(1);
         throttled(2);
@@ -431,13 +431,13 @@ describe('#throttle', function() {
     });
 
     it('Should use LruCache when maxSize option is set', function() {
-        const refreshIn = 50;
+        const delay = 50;
         const target = sandbox.spy();
 
         const constructor = sandbox.spy(MockLruCache.prototype, '_constructorCalled');
         const get = sandbox.spy(MockLruCache.prototype, 'get');
 
-        const throttled = throttle(target, refreshIn, { maxSize: 3 });
+        const throttled = throttle(target, { delay, maxSize: 3 });
         throttled(1);
 
         sinon.assert.calledOnce(constructor);
