@@ -2,14 +2,15 @@
   "name": "@ambassify/throttle",
   "version": "2.0.0",
   "description": "Throttle depending on function arguments.",
-  "main": "index.js",
+  "main": "src/index.js",
+  "type": "commonjs",
   "engines": {
-    "node": ">=12"
+    "node": ">=18"
   },
   "scripts": {
     "test": "npm -s run test:lint & npm -s run test:unit",
-    "test:lint": "eslint index.js",
-    "test:unit": "nyc mocha $HARMONY_OPTIONS",
+    "test:lint": "eslint .",
+    "test:unit": "nyc mocha",
     "release": "npm version patch && npm publish"
   },
   "keywords": [
@@ -19,13 +20,13 @@
   "author": "Ambassify <dev@ambassify.com>",
   "license": "MIT",
   "devDependencies": {
-    "eslint": "^6.8.0",
+    "eslint": "^8.57.0",
+    "eslint-config-ambassify": "^4.0.1",
     "mocha": "^7.1.2",
     "mocha-circleci-reporter": "0.0.3",
     "mock-require": "^3.0.3",
     "nyc": "^15.0.1",
-    "sinon": "^9.0.2",
-    "sleep-promise": "^8.0.1"
+    "sinon": "^9.0.2"
   },
   "directories": {
     "test": "test"
@@ -39,6 +40,6 @@
   },
   "homepage": "https://github.com/ambassify/throttle#readme",
   "dependencies": {
-    "hash-it": "^4.0.5"
+    "hash-it": "^6.0.0"
   }
 }

@@ -1,0 +1,8 @@
+{
+    "extends": [
+        "ambassify/mocha"
+    ],
+    "rules": {
+        "n/no-unpublished-require": 0
+    }
+}

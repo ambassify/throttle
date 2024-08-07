@@ -16,35 +16,20 @@ jobs:
             - store_artifacts:
                 path: coverage
 
-    build-v12:
+    build-v18:
         <<: *common-build
         docker:
-            - image: node:12
+            - image: node:18
 
-    build-v12-weakref:
-        <<: *common-build
-        environment:
-            HARMONY_OPTIONS: --harmony-weak-refs
-        docker:
-            - image: node:12
-
-    build-v14:
+    build-v20:
         <<: *common-build
         docker:
-            - image: node:14
-
-
-    build-v16:
-        <<: *common-build
-        docker:
-            - image: node:16
+            - image: node:20
 
 workflows:
     version: 2
     build_and_test:
         jobs:
             - build-latest
-            - build-v12
-            - build-v12-weakref
-            - build-v14
-            - build-v16
+            - build-v18
+            - build-v20

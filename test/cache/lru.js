@@ -1,18 +1,16 @@
-/* globals describe, before, afterEach, it */
-
 const sinon = require('sinon');
 const assert = require('assert');
 
 describe('#cache/lru', function() {
 
     const sandbox = sinon.createSandbox();
-    const LruCache = require('../../cache/lru');
+    const LruCache = require('../../src/cache/lru');
 
     afterEach(function() {
         sandbox.restore();
     });
 
-    it('should work like the default Map cache', function () {
+    it('should work like the default Map cache', function() {
         const cache = new LruCache();
 
         const k1 = 'foo';
@@ -52,7 +50,7 @@ describe('#cache/lru', function() {
         assert(!cache.has(k1));
         assert(!cache.has(k2));
         assert(!cache.has(k3));
-    })
+    });
 
     it('should not keep more than `options.maxSize` values in cache', function() {
         const cache = new LruCache({ maxSize: 3 });
@@ -66,7 +64,7 @@ describe('#cache/lru', function() {
         assert(cache.has(2));
         assert(cache.has(3));
         assert(cache.has(4));
-    })
+    });
 
     it('should evict the least recently used item', function() {
         const cache = new LruCache({ maxSize: 3 });
@@ -82,7 +80,7 @@ describe('#cache/lru', function() {
         assert(cache.has(1));
         assert(cache.has(3));
         assert(cache.has(4));
-    })
+    });
 
     it('should keep eviction in sync when items are deleted', function() {
         const cache = new LruCache({ maxSize: 3 });
@@ -97,5 +95,5 @@ describe('#cache/lru', function() {
         assert(cache.has(1));
         assert(cache.has(3));
         assert(cache.has(4));
-    })
+    });
 });
