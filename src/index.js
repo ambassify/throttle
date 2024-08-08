@@ -91,9 +91,9 @@ function execute(func, args, { cacheItem, onError }) {
  * @typedef {Object} ThrottleOptions
  *
  * @property {number} delay How much time must have been elapsed for `func` to
- *      be invoked again when there's a chached result available
+ *      be invoked again when there's a chached result available. Defaults to `Infinity`.
  *
- * @property {number?} maxAge How long are items allowed to remain in cache. Unlimited by default?
+ * @property {number?} maxAge How long are items allowed to remain in cache. Unlimited by default.
  * @property {number?} maxSize How long are items allowed to remain in cache. Unlimited by default.
  * @property {Map} cache Specify a custom cache for throttle to use. Must provide methods that match Map's equivalent: has, get, set, delete, clear
  * @property {Function} resolver Given the same arguments used to invoke `func` return only what's important to build the cache key.
@@ -153,7 +153,7 @@ function throttle(func, options = {}) {
         isNil(options.maxSize)
     ) throw new Error('No cache limitation options set, set at least one of "cache", "maxAge", or "maxSize".');
 
-    const delay = parseInt(options.delay, 10);
+    const delay = options.delay ?? Infinity;
     const maxAge = options.maxAge || false;
     const resolver = options.resolver || defaultResolver;
     const cache = getCache({ ...options, maxAge, delay });

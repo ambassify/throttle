@@ -41,7 +41,7 @@ describe('#throttle', function() {
         assert.equal(target.callCount, 3);
     });
 
-    it('Should not cache results when delay not set', function() {
+    it('Should cache results when delay not set', function() {
         const target = sandbox.spy();
         const throttled = throttle(target, { maxSize: Infinity });
 
@@ -49,7 +49,7 @@ describe('#throttle', function() {
         throttled(2);
         throttled(2);
 
-        assert.equal(target.callCount, 3);
+        assert.equal(target.callCount, 2);
     });
 
     it('Should allow delay to be set using options', async function() {

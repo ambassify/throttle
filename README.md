@@ -40,8 +40,8 @@ throttled.clear(<...args>);
 
 | Name | Type | Description |
 | --- | --- | --- |
-| delay | <code>number</code> | How much time must have been elapsed for `func` to      be invoked again when there's a chached result available |
-| maxAge | <code>number</code> | How long are items allowed to remain in cache. Unlimited by default? |
+| delay | <code>number</code> | How much time must have been elapsed for `func` to be invoked again when there's a chached result available. Defaults to `Infinity`. |
+| maxAge | <code>number</code> | How long are items allowed to remain in cache. Unlimited by default. |
 | maxSize | <code>number</code> | How long are items allowed to remain in cache. Unlimited by default. |
 | cache | <code>Map</code> | Specify a custom cache for throttle to use. Must provide methods that match Map's equivalent: has, get, set, delete, clear |
 | resolver | <code>function</code> | Given the same arguments used to invoke `func` return only what's important to build the cache key. |
