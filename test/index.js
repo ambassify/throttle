@@ -193,6 +193,29 @@ describe('#throttle', function() {
         assert.equal(target.callCount, 1);
     });
 
+    /**
+     * This test was added due to a bug that caused uncaught errors to get thrown
+     * when you used "persist" and only called the throttled function a single time.
+     */
+    it('Should not throw uncaught errors when "onError: persist"', async function() {
+        const fail = sandbox.spy();
+
+        const target = sandbox.spy(function() {
+            return Promise.reject(new Error());
+        });
+
+        const throttled = throttle(target, {
+            delay: 20,
+            maxSize: Infinity,
+            onError: 'persist'
+        });
+
+        await throttled(1).catch(fail);
+
+        assert.equal(target.callCount, 1);
+        assert.equal(fail.callCount, 1);
+    });
+
     it('Should cache failed promises when "onError: persist"', async function() {
         const delay = 20;
         const fail = sandbox.spy();

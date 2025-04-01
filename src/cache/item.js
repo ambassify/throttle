@@ -89,9 +89,11 @@ class CacheItem {
      */
     set error(err) {
         // When setting an error for a pending promise, set is as a rejection
-        // to make sure the throttled function doesn't throw is synchronously
+        // to make sure the throttled function doesn't throw is synchronously.
+        // Make sure the rejection doesn't thow uncaught by attaching a handler.
         if (this.pending) {
             this.value = Promise.reject(err);
+            this.value.catch(noop);
             return;
         }
 
